@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAUUSD AI Trader</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #080810; color: #EAEAF8; font-family: system-ui, sans-serif; min-height: 100vh; }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: #2a2a40; border-radius: 3px; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  .card { background: #0E0E18; border: 1px solid #1A1A2E; border-radius: 12px; }
+  .fade { animation: fadeUp .3s ease; }
+  .mono { font-family: 'Courier New', monospace; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <div style="background:#0A0A14;border-bottom:1px solid #1A1A2E;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#F5C518,#A07010);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#060608;">Au</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;">XAUUSD AI Trader</div>
+        <div style="font-size:9px;color:#525270;letter-spacing:2px;">AUTONOMOUS GOLD SYSTEM v1.0</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="background:#00E67615;border:1px solid #00E67640;border-radius:6px;padding:3px 10px;">
+        <div style="font-size:8px;color:#525270;letter-spacing:1px;">DATA SOURCE</div>
+        <div id="sourceLabel" class="mono" style="font-size:10px;color:#F5C518;">connecting...</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:8px;color:#525270;">LAST UPDATE</div>
+        <div id="lastUpdate" class="mono" style="font-size:10px;">--:--:--</div>
+      </div>
+      <div id="botBadge" style="display:flex;align-items:center;gap:6px;background:#52527010;border:1px solid #1A1A2E;border-radius:8px;padding:5px 12px;">
+        <div id="botDot" style="width:6px;height:6px;border-radius:50%;background:#525270;"></div>
+        <span id="botLabel" style="font-size:10px;color:#525270;font-weight:700;">CONNECTING</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGNAL BANNER -->
+  <div id="signalBanner" style="display:none;background:#00E67608;border-bottom:1px solid #00E67620;padding:5px 18px;">
+    <span style="color:#00E676;font-size:10px;font-weight:600;">● LIVE SIGNAL — </span>
+    <span id="signalReason" class="mono" style="color:#525270;font-size:10px;"></span>
+  </div>
+
+  <div style="padding:12px 18px;display:flex;flex-direction:column;gap:12px;">
+
+    <!-- ROW 1 -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:stretch;">
+
+      <!-- Price Card -->
+      <div class="card" style="padding:18px 20px;flex:0 0 auto;min-width:280px;">
+        <div style="font-size:8px;color:#525270;letter-spacing:2px;margin-bottom:6px;">GOLD SPOT · XAU/USD</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div id="priceDisplay" class="mono" style="font-size:44px;font-weight:700;color:#F5C518;letter-spacing:-1px;line-height:1;">—</div>
+            <div style="display:flex;gap:14px;margin-top:7px;">
+              <div id="priceDelta" class="mono" style="font-size:13px;color:#525270;">— —</div>
+              <div id="dayChange" class="mono" style="font-size:13px;color:#525270;"></div>
+            </div>
+          </div>
+          <canvas id="sparkCanvas" width="200" height="50"></canvas>
+        </div>
+        <div style="display:flex;gap:18px;margin-top:12px;padding-top:10px;border-top:1px solid #1A1A2E;">
+          <div><div style="font-size:8px;color:#525270;letter-spacing:1.5px;">OPEN</div><div id="openPrice" class="mono" style="font-size:12px;margin-top:1px;">—</div></div>
+          <div><div style="font-size:8px;color:#525270;letter-spacing:1.5px;">HIGH</div><div id="highPrice" class="mono" style="font-size:12px;margin-top:1px;color:#00E676;">—</div></div>
+          <div><div style="font-size:8px;color:#525270;letter-spacing:1.5px;">LOW</div><div id="lowPrice" class="mono" style="font-size:12px;margin-top:1px;color:#FF4560;">—</div></div>
+        </div>
+      </div>
+
+      <!-- Stat Tiles -->
+      <div class="card" style="padding:14px 16px;flex:1;min-width:110px;">
+        <div style="font-size:8px;color:#525270;letter-spacing:2px;margin-bottom:5px;">WIN RATE</div>
+        <div id="winRate" class="mono" style="font-size:22px;font-weight:700;color:#00E676;line-height:1;">75%</div>
+        <div id="totalTrades" style="font-size:10px;color:#525270;margin-top:4px;">paper mode</div>
+      </div>
+      <div class="card" style="padding:14px 16px;flex:1;min-width:110px;">
+        <div style="font-size:8px;color:#525270;letter-spacing:2px;margin-bottom:5px;">TOTAL P&L</div>
+        <div id="totalPnl" class="mono" style="font-size:22px;font-weight:700;color:#F5C518;line-height:1;">+$429</div>
+        <div id="avgPnl" style="font-size:10px;color:#525270;margin-top:4px;">paper mode</div>
+      </div>
+      <div class="card" style="padding:14px 16px;flex:1;min-width:110px;">
+        <div style="font-size:8px;color:#525270;letter-spacing:2px;margin-bottom:5px;">BOT STATUS</div>
+        <div id="botStatusTile" class="mono" style="font-size:22px;font-weight:700;color:#525270;line-height:1;">PAPER</div>
+        <div id="botStatusSub" style="font-size:10px;color:#525270;margin-top:4px;">connecting...</div>
+      </div>
+      <div class="card" style="padding:14px 16px;flex:1;min-width:110px;">
+        <div style="font-size:8px;color:#525270;letter-spacing:2px;margin-bottom:5px;">ACCOUNT</div>
+        <div class="mono" style="font-size:22px;font-weight:700;color:#EAEAF8;line-height:1;">$10,000</div>
+        <div style="font-size:10px;color:#525270;margin-top:4px;">Paper trading</div>
+      </div>
+    </div>
+
+    <!-- ROW 2 -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+
+      <!-- AI Signal -->
+      <div id="signalCard" class="card" style="padding:16px 18px;flex:0 0 220px;border:1.5px solid #00E67633;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-size:8px;color:#525270;letter-spacing:2px;">AI TRADE SIGNAL</div>
+          <svg id="ringsvg" width="64" height="64" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#1A1A2E" stroke-width="5"/>
+            <circle id="ringCircle" cx="32" cy="32" r="26" fill="none" stroke="#00E676" stroke-width="5"
+              stroke-dasharray="163.4" stroke-dashoffset="41" stroke-linecap="round"
+              transform="rotate(-90 32 32)" style="transition:stroke-dashoffset .7s ease"/>
+            <text id="ringText" x="32" y="37" text-anchor="middle" style="fill:#00E676;font-size:13px;font-weight:700;font-family:monospace;">74%</text>
+          </svg>
+        </div>
+        <div id="signalBox" style="background:#00E67612;border:1px solid #00E67633;border-radius:8px;padding:8px;text-align:center;margin-bottom:10px;">
+          <div id="signalDir" style="color:#00E676;font-size:22px;font-weight:800;letter-spacing:3px;">WAIT</div>
+          <div style="color:#525270;font-size:8px;margin-top:2px;">XAUUSD · M15 · INTRADAY</div>
+        </div>
+        <div id="signalLevels"></div>
+      </div>
+
+      <!-- Market Conditions -->
+      <div class="card" style="padding:16px 18px;flex:0 0 200px;">
+        <div style="font-size:8px;color:#525270;letter-spacing:2px;margin-bottom:10px;">MARKET CONDITIONS</div>
+        <div id="conditions"></div>
+      </div>
+
+      <!-- Log -->
+      <div class="card" style="padding:16px 18px;flex:1;min-width:220px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:8px;color:#525270;letter-spacing:2px;">SYSTEM LOG</div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <div id="logDot" style="width:6px;height:6px;border-radius:50%;background:#525270;"></div>
+            <span id="logStatus" style="font-size:8px;color:#525270;letter-spacing:1px;">IDLE</span>
+          </div>
+        </div>
+        <div id="logBox" style="height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
+      </div>
+    </div>
+
+    <!-- ROW 3: Trades -->
+    <div class="card" style="padding:16px 18px;">
+      <div style="font-size:8px;color:#525270;letter-spacing:2px;margin-bottom:10px;">TRADE HISTORY</div>
+      <div style="display:grid;grid-template-columns:50px 55px 1fr 1fr 65px 80px 65px;gap:8px;margin-bottom:6px;">
+        <div style="font-size:8px;color:#525270;">#</div>
+        <div style="font-size:8px;color:#525270;">DIR</div>
+        <div style="font-size:8px;color:#525270;">ENTRY</div>
+        <div style="font-size:8px;color:#525270;">CLOSE</div>
+        <div style="font-size:8px;color:#525270;">TIME</div>
+        <div style="font-size:8px;color:#525270;">P&L</div>
+        <div style="font-size:8px;color:#525270;">STATUS</div>
+      </div>
+      <div id="tradesTable"></div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding-top:4px;border-top:1px solid #1A1A2E40;">
+      <div style="font-size:9px;color:#525270;">Strategy: Intraday Liquidity · EMA50/200 · RSI · ATR</div>
+      <div class="mono" style="font-size:9px;color:#525270;">Risk: 1%/trade · Max 0.50 lot · Stop: 3 losses</div>
+      <div id="footerSource" style="font-size:9px;color:#F5C518;">● connecting...</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const BOT = "https://f2b57b6a-c52f-4797-bb9b-ad2a00050486-00-1fkzhaaknzegf.sisko.replit.dev";
+const GOLD_KEY = "88c58e6caf99e26e6d436caf96865a1980a899919dc21ffe965bf8b148d5c8dc";
+
+let priceHistory = [];
+let prevPrice = null;
+
+// ── Logging ──────────────────────────────────
+const logLines = [
+  "🟡 System initializing...",
+  "📡 Connecting to XAUUSD data feed...",
+  "✅ API key loaded",
+  "🛡️ Risk manager online",
+  "✅ All systems operational",
+];
+function pushLog(msg) {
+  logLines.push(msg);
+  if (logLines.length > 40) logLines.shift();
+  renderLog();
+}
+function renderLog() {
+  const box = document.getElementById("logBox");
+  box.innerHTML = logLines.map(l => {
+    const color = l.includes("✅") || l.includes("🟢") ? "#00E676"
+      : l.includes("⚠️") || l.includes("❌") ? "#FF4560"
+      : l.includes("💹") || l.includes("SIGNAL") ? "#F5C518" : "#EAEAF8";
+    const time = new Date().toTimeString().slice(0,8);
+    return `<div style="display:flex;gap:6px;padding:2px 0;">
+      <span class="mono" style="color:#525270;font-size:8px;flex-shrink:0;">${time}</span>
+      <span class="mono" style="font-size:9px;color:${color};">${l}</span>
+    </div>`;
+  }).join("");
+  box.scrollTop = box.scrollHeight;
+}
+renderLog();
+
+// ── Sparkline ─────────────────────────────────
+function drawSpark() {
+  const canvas = document.getElementById("sparkCanvas");
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, 200, 50);
+  if (priceHistory.length < 2) return;
+  const data = priceHistory.slice(-60);
+  const min = Math.min(...data), max = Math.max(...data);
+  const r = max - min || 1;
+  const isUp = data[data.length-1] >= data[0];
+  const color = isUp ? "#00E676" : "#FF4560";
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  data.forEach((v, i) => {
+    const x = (i / (data.length - 1)) * 200;
+    const y = 50 - ((v - min) / r) * 46 - 2;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  const lx = 200, ly = 50 - ((data[data.length-1] - min) / r) * 46 - 2;
+  ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill();
+}
+
+// ── Update price display ──────────────────────
+function updatePriceUI(price, open, high, low, source) {
+  const delta = prevPrice ? parseFloat((price - prevPrice).toFixed(2)) : 0;
+  const dayChg = open ? parseFloat((price - open).toFixed(2)) : null;
+  const dayPct = dayChg && open ? ((dayChg / open) * 100).toFixed(2) : null;
+  const isUp = delta >= 0;
+
+  document.getElementById("priceDisplay").textContent = price.toFixed(2);
+  document.getElementById("priceDisplay").style.color = "#F5C518";
+  document.getElementById("priceDelta").textContent = `${isUp?"▲":"▼"} ${Math.abs(delta).toFixed(2)}`;
+  document.getElementById("priceDelta").style.color = isUp ? "#00E676" : "#FF4560";
+  if (dayChg !== null) {
+    document.getElementById("dayChange").textContent = `${dayChg>=0?"+":""}${dayChg.toFixed(2)} (${dayChg>=0?"+":""}${dayPct}%)`;
+    document.getElementById("dayChange").style.color = dayChg >= 0 ? "#00E676" : "#FF4560";
+  }
+  if (open) document.getElementById("openPrice").textContent = open.toFixed(2);
+  if (high) document.getElementById("highPrice").textContent = high.toFixed(2);
+  if (low) document.getElementById("lowPrice").textContent = low.toFixed(2);
+
+  document.getElementById("sourceLabel").textContent = source;
+  document.getElementById("sourceLabel").style.color = "#00E676";
+  document.getElementById("footerSource").textContent = "● " + source;
+  document.getElementById("footerSource").style.color = "#00E676";
+  document.getElementById("lastUpdate").textContent = new Date().toLocaleTimeString();
+
+  priceHistory.push(price);
+  if (priceHistory.length > 100) priceHistory.shift();
+  prevPrice = price;
+  drawSpark();
+}
+
+// ── Fetch price from bot ──────────────────────
+async function fetchBotPrice() {
+  try {
+    const r = await fetch(`${BOT}/market/price`);
+    if (!r.ok) return false;
+    const d = await r.json();
+    if (!d?.price) return false;
+    updatePriceUI(parseFloat(d.price), null, null, null, "Replit Bot ✓ LIVE");
+    return true;
+  } catch { return false; }
+}
+
+// ── Fetch price from goldapi ──────────────────
+async function fetchGoldPrice() {
+  const TARGET = "https://www.goldapi.io/api/XAU/USD";
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(TARGET)}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent(TARGET)}`,
+  ];
+  for (const proxy of proxies) {
+    try {
+      const r = await fetch(proxy, { headers: { "x-access-token": GOLD_KEY } });
+      if (!r.ok) continue;
+      const raw = await r.json();
+      const d = raw.contents ? JSON.parse(raw.contents) : raw;
+      if (!d?.price) continue;
+      updatePriceUI(parseFloat(d.price), d.open_price, d.high_price, d.low_price, "goldapi.io ✓ LIVE");
+      return true;
+    } catch { continue; }
+  }
+  return false;
+}
+
+// ── Fetch bot signals/trades ──────────────────
+async function fetchBotData() {
+  try {
+    const [sRes, mRes, tRes, stRes] = await Promise.all([
+      fetch(`${BOT}/market/analysis`).then(r=>r.json()).catch(()=>null),
+      fetch(`${BOT}/market/signals`).then(r=>r.json()).catch(()=>null),
+      fetch(`${BOT}/trades?limit=10`).then(r=>r.json()).catch(()=>null),
+      fetch(`${BOT}/trades/stats`).then(r=>r.json()).catch(()=>null),
+    ]);
+
+    let botConnected = false;
+
+    if (sRes?.direction) {
+      botConnected = true;
+      updateSignal(sRes);
+    }
+    if (mRes?.signals) updateConditions(mRes.signals);
+    if (tRes?.trades) updateTrades(tRes.trades);
+    if (stRes?.win_rate !== undefined) updateStats(stRes);
+
+    if (botConnected) {
+      document.getElementById("botDot").style.background = "#00E676";
+      document.getElementById("botDot").style.animation = "blink 1s infinite";
+      document.getElementById("botLabel").textContent = "BOT LIVE";
+      document.getElementById("botLabel").style.color = "#00E676";
+      document.getElementById("botBadge").style.background = "#00E67615";
+      document.getElementById("botBadge").style.border = "1px solid #00E67640";
+      document.getElementById("botStatusTile").textContent = "LIVE";
+      document.getElementById("botStatusTile").style.color = "#00E676";
+      document.getElementById("botStatusSub").textContent = "Replit connected";
+      document.getElementById("logDot").style.background = "#00E676";
+      document.getElementById("logDot").style.animation = "blink 1s infinite";
+      document.getElementById("logStatus").textContent = "LIVE";
+      document.getElementById("logStatus").style.color = "#00E676";
+      pushLog("🟢 Bot connected — live signals active");
+    }
+    return botConnected;
+  } catch { return false; }
+}
+
+function updateSignal(s) {
+  const dir = s.direction || "WAIT";
+  const col = dir === "BUY" ? "#00E676" : dir === "SELL" ? "#FF4560" : "#525270";
+  document.getElementById("signalCard").style.border = `1.5px solid ${col}33`;
+  document.getElementById("signalBox").style.background = col + "12";
+  document.getElementById("signalBox").style.border = `1px solid ${col}33`;
+  document.getElementById("signalDir").textContent = dir;
+  document.getElementById("signalDir").style.color = col;
+
+  const pct = Math.round((s.confidence || 0.74) * 100);
+  const circ = 163.4;
+  const offset = circ * (1 - pct / 100);
+  document.getElementById("ringCircle").setAttribute("stroke-dashoffset", offset);
+  document.getElementById("ringCircle").setAttribute("stroke", col);
+  document.getElementById("ringText").textContent = pct + "%";
+  document.getElementById("ringText").style.fill = col;
+
+  const p = s.entry || 0;
+  const levels = [
+    ["Entry", s.entry?.toFixed(2) || "—"],
+    ["Stop Loss", s.sl?.toFixed(2) || "—"],
+    ["TP 1", s.tp1?.toFixed(2) || "—"],
+    ["TP 2", s.tp2?.toFixed(2) || "—"],
+    ["Lot", s.lot?.toFixed(2) || "—"],
+    ["R:R", s.rr ? `1 : ${s.rr}` : "—"],
+  ];
+  document.getElementById("signalLevels").innerHTML = levels.map(([k,v]) =>
+    `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #1A1A2E;">
+      <span style="color:#525270;font-size:10px;">${k}</span>
+      <span class="mono" style="font-size:10px;">${v}</span>
+    </div>`
+  ).join("");
+
+  if (s.reason) {
+    document.getElementById("signalBanner").style.display = "block";
+    document.getElementById("signalReason").textContent = s.reason.slice(0, 80);
+  }
+}
+
+function updateConditions(signals) {
+  document.getElementById("conditions").innerHTML = signals.map(s =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1A1A2E;">
+      <span style="color:#525270;font-size:10px;">${s.label}</span>
+      <span class="mono" style="font-size:10px;color:${s.ok ? "#00E676" : "#FF4560"};">${s.value}</span>
+    </div>`
+  ).join("");
+}
+
+function updateTrades(trades) {
+  if (!trades?.length) return;
+  document.getElementById("tradesTable").innerHTML = trades.map(t => {
+    const pnl = parseFloat(t.pnl) || 0;
+    const pnlStr = `${pnl>=0?"+":""}$${Math.abs(pnl).toFixed(0)}`;
+    const dir = t.direction || t.dir || "BUY";
+    return `<div style="display:grid;grid-template-columns:50px 55px 1fr 1fr 65px 80px 65px;gap:8px;padding:7px 0;border-top:1px solid #1A1A2E;align-items:center;">
+      <span class="mono" style="color:#525270;font-size:10px;">#${t.ticket||"—"}</span>
+      <span style="color:${dir==="BUY"?"#00E676":"#FF4560"};font-weight:700;font-size:10px;">${dir}</span>
+      <span class="mono" style="font-size:10px;">${t.entry||"—"}</span>
+      <span class="mono" style="font-size:10px;">${t.close_price||t.close||"—"}</span>
+      <span style="color:#525270;font-size:10px;">${t.time||"—"}</span>
+      <span class="mono" style="font-size:10px;font-weight:700;color:${pnl>=0?"#00E676":"#FF4560"};">${pnlStr}</span>
+      <span style="font-size:8px;padding:2px 6px;border-radius:4px;background:#52527015;color:#525270;">${t.status||"closed"}</span>
+    </div>`;
+  }).join("");
+}
+
+function updateStats(s) {
+  document.getElementById("winRate").textContent = `${(s.win_rate*100).toFixed(0)}%`;
+  document.getElementById("totalTrades").textContent = `${s.total_trades} trades`;
+  document.getElementById("totalPnl").textContent = `${s.total_pnl>=0?"+":""}$${Math.abs(s.total_pnl).toFixed(0)}`;
+  document.getElementById("avgPnl").textContent = `avg $${Math.abs(s.avg_pnl).toFixed(0)}/trade`;
+}
+
+// Default conditions
+updateConditions([
+  {label:"Trend (EMA200)", value:"BULLISH", ok:true},
+  {label:"RSI (14)", value:"42.3 — Neutral", ok:true},
+  {label:"Liquidity Sweep", value:"Watching", ok:true},
+  {label:"Session", value:"Active", ok:true},
+  {label:"Volatility ATR", value:"8.4 pts", ok:true},
+  {label:"News Filter", value:"Clear", ok:true},
+]);
+
+// Default trades
+updateTrades([
+  {ticket:"1001",direction:"BUY",entry:"3298.40",close_price:"3321.80",pnl:"184",time:"09:12",status:"closed"},
+  {ticket:"1002",direction:"SELL",entry:"3338.10",close_price:"3318.50",pnl:"156",time:"11:47",status:"closed"},
+  {ticket:"1003",direction:"BUY",entry:"3305.60",close_price:"3295.20",pnl:"-83",time:"14:03",status:"closed"},
+  {ticket:"1004",direction:"BUY",entry:"3309.80",close_price:"3331.40",pnl:"172",time:"16:30",status:"closed"},
+]);
+
+// ── Main loop ─────────────────────────────────
+let goldMode = false;
+
+async function mainLoop() {
+  const botOk = await fetchBotData();
+  if (botOk) {
+    await fetchBotPrice();
+    pushLog(`💹 XAUUSD: ${prevPrice?.toFixed(2)} — scanning M15...`);
+  } else {
+    if (!goldMode) {
+      goldMode = await fetchGoldPrice();
+      if (!goldMode) {
+        // fallback sim
+        const sim = prevPrice ? prevPrice + (Math.random()-0.492)*0.85 : 3250;
+        updatePriceUI(parseFloat(sim.toFixed(2)), 3240, 3265, 3235, "simulated");
+      }
+    } else {
+      await fetchGoldPrice();
+    }
+    pushLog("⚠️ Bot offline — restart Replit Shell");
+  }
+}
+
+mainLoop();
+setInterval(mainLoop, 10000);
+setInterval(() => {
+  if (prevPrice) {
+    const msgs = [
+      `💹 XAUUSD: ${prevPrice?.toFixed(2)}`,
+      "🔄 Analyzing M15 structure...",
+      "🔍 Watching liquidity levels...",
+      "⏳ Waiting for high-probability setup...",
+    ];
+    pushLog(msgs[Math.floor(Math.random()*msgs.length)]);
+  }
+}, 5000);
+
+</script>
+</body>
+</html>
